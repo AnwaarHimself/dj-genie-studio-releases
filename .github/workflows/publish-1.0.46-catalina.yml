@@ -1,0 +1,30 @@
+name: Restore Catalina website downloads using tested 1.0.46
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-1.0.46-catalina.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish-catalina:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Download and verify Catalina recovery
+        env:
+          ARTIFACT_URL: 'https://sdmntprwestus3.oaiusercontent.com/files/00000000-415c-81fd-a4a7-57eb61d1bc18/raw?se=2026-11-26T05%3A23%3A20Z&sp=r&sv=2026-06-06&sr=b&scid=9474f03c-d8fe-5ee1-8259-7d92a9595c9d&skoid=c69179d1-5b5d-430f-afa3-b9bdcf9d6497&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-26T00%3A11%3A35Z&ske=2026-11-27T00%3A11%3A35Z&sks=b&skv=2026-06-06&sig=Kz2Xgd0hCfjmyD%2Bg5AHs//wXuqGu3Xgh9FPfx2AetQQ%3D'
+        run: |
+          curl -fL --retry 3 --max-time 230 "$ARTIFACT_URL" -o /tmp/catalina-recovery.zip
+          echo "d3422fab1d27e0223a64f2c5df64c0f0d9845b4bd75906fe133c54a32feb301e  /tmp/catalina-recovery.zip" | sha256sum -c -
+          unzip -q /tmp/catalina-recovery.zip -d /tmp/catalina-recovery
+          echo "72ab25a8ab444a132e72da7a64fb353bb8435e9cbe513c566b118836829fdb30  /tmp/catalina-recovery/DJ.Genie.Studio-1.0.46-catalina-x64.dmg" | sha256sum -c -
+      - name: Publish new 1.0.46 Catalina download and fix existing website link
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: AnwaarHimself/dj-genie-studio-releases
+        run: |
+          gh release upload v1.0.46 /tmp/catalina-recovery/DJ.Genie.Studio-1.0.46-catalina-x64.dmg --clobber
+          cp /tmp/catalina-recovery/DJ.Genie.Studio-1.0.46-catalina-x64.dmg /tmp/catalina-recovery/DJ.Genie.Studio-1.0.45-catalina-x64.dmg
+          gh release upload v1.0.45 /tmp/catalina-recovery/DJ.Genie.Studio-1.0.45-catalina-x64.dmg --clobber
+          gh release view v1.0.46 --json assets
