@@ -1,0 +1,19 @@
+name: Check DJ Genie Studio live download links
+on:
+  push:
+    paths:
+      - '.github/workflows/probe-download-site.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check live download page and desktop version API
+        run: |
+          for endpoint in https://djgeniestudio.com/download https://djgeniestudio.com/api/releases/desktop https://dj-genie.us-central1.hosted.app/download; do
+            echo "Checking $endpoint"
+            curl --max-time 30 -sSL -o /tmp/page -w "status=%{http_code} url=%{url_effective}\n" "$endpoint" || true
+            if grep -q '1.0.46' /tmp/page; then echo 'LIVE_VERSION=1.0.46'; elif grep -q '1.0.45' /tmp/page; then echo 'LIVE_VERSION=1.0.45'; else echo 'LIVE_VERSION=unknown'; fi
+          done
