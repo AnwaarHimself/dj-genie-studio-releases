@@ -1,0 +1,30 @@
+name: Restore universal website download with tested 1.0.46
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-1.0.46-universal.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish-universal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Download and verify universal recovery
+        env:
+          ARTIFACT_URL: 'https://sdmntprwestus3.oaiusercontent.com/files/00000000-7574-81fd-b363-08c75c7e4557/raw?se=2026-11-26T05%3A24%3A25Z&sp=r&sv=2026-06-06&sr=b&scid=ea0becd9-efc2-59b6-b765-232f6e3cef8d&skoid=c69179d1-5b5d-430f-afa3-b9bdcf9d6497&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-25T20%3A57%3A20Z&ske=2026-11-26T20%3A57%3A20Z&sks=b&skv=2026-06-06&sig=t14DSw4X1U87FhlK4vascGYFdtpODu3ExXfK2kCzCW4%3D'
+        run: |
+          curl -fL --retry 3 --max-time 220 "$ARTIFACT_URL" -o /tmp/universal-recovery.zip
+          echo "3d72612565f8c9e1b120be8dd54e0d4489bceffe5b75a0f18207d9b194267439  /tmp/universal-recovery.zip" | sha256sum -c -
+          unzip -q /tmp/universal-recovery.zip -d /tmp/universal-recovery
+          echo "84794a465881aa4aeda72c4d8dd617a9ac4b3fba009e63a00819e3f382d4b48e  /tmp/universal-recovery/DJ.Genie.Studio-1.0.46-universal.dmg" | sha256sum -c -
+      - name: Publish new universal release and replace old website asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: AnwaarHimself/dj-genie-studio-releases
+        run: |
+          gh release upload v1.0.46 /tmp/universal-recovery/DJ.Genie.Studio-1.0.46-universal.dmg --clobber
+          cp /tmp/universal-recovery/DJ.Genie.Studio-1.0.46-universal.dmg /tmp/universal-recovery/DJ.Genie.Studio-1.0.45-universal.dmg
+          gh release upload v1.0.45 /tmp/universal-recovery/DJ.Genie.Studio-1.0.45-universal.dmg --clobber
+          gh release view v1.0.45 --json assets
