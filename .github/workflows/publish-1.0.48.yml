@@ -1,0 +1,42 @@
+name: Publish verified DJ Genie Studio 1.0.48
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-1.0.48.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Retrieve and verify installers
+        env:
+          UNIVERSAL_URL: 'https://sdmntprwestus3.oaiusercontent.com/files/00000000-2a10-81fd-8bfb-1a59ce989517/raw?se=2026-11-27T07%3A06%3A29Z&sp=r&sv=2026-06-06&sr=b&scid=2a00f7d8-776f-52db-80c4-dbf4e09d2e93&skoid=c69179d1-5b5d-430f-afa3-b9bdcf9d6497&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-26T22%3A40%3A22Z&ske=2026-11-27T22%3A40%3A22Z&sks=b&skv=2026-06-06&sig=2Rv2TEIX%2BPaVANcWC3UhK5agmmyGVbWifiZdTfiOZ7c%3D'
+          CATALINA_URL: 'https://sdmntprwestus3.oaiusercontent.com/files/00000000-660c-81fd-a0bf-d008a632f9c3/raw?se=2026-11-27T07%3A07%3A29Z&sp=r&sv=2026-06-06&sr=b&scid=be43cc23-73d8-53a8-aa22-4bf4f695e8de&skoid=c69179d1-5b5d-430f-afa3-b9bdcf9d6497&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-26T22%3A54%3A59Z&ske=2026-11-27T22%3A54%3A59Z&sks=b&skv=2026-06-06&sig=fg6LjVxsd9H%2BkSQFZNY0MA4Kp6Q1Gncv%2BuyDZTcehyg%3D'
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/djgenie-1.0.48
+          curl -fLsS --retry 3 --max-time 260 "$UNIVERSAL_URL" -o /tmp/djgenie-1.0.48/universal.zip
+          echo "7c06218584ef00aa1a3f69cdaab5689e6ce36f4c70c70ba235017912b7560c66  /tmp/djgenie-1.0.48/universal.zip" | sha256sum -c -
+          curl -fLsS --retry 3 --max-time 260 "$CATALINA_URL" -o /tmp/djgenie-1.0.48/catalina.zip
+          echo "f9528c211edc0ab8e98a15822cc6e8edeaa54cf761cf237880d1d7c68cc050fe  /tmp/djgenie-1.0.48/catalina.zip" | sha256sum -c -
+          unzip -q /tmp/djgenie-1.0.48/universal.zip -d /tmp/djgenie-1.0.48
+          unzip -q /tmp/djgenie-1.0.48/catalina.zip -d /tmp/djgenie-1.0.48
+          test -s /tmp/djgenie-1.0.48/DJ.Genie.Studio-1.0.48-universal.dmg
+          test -s /tmp/djgenie-1.0.48/DJ.Genie.Studio-1.0.48-catalina-x64.dmg
+      - name: Publish public release v1.0.48
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: AnwaarHimself/dj-genie-studio-releases
+        run: |
+          set -euo pipefail
+          if gh release view v1.0.48 >/dev/null 2>&1; then
+            gh release upload v1.0.48 /tmp/djgenie-1.0.48/DJ.Genie.Studio-1.0.48-universal.dmg /tmp/djgenie-1.0.48/DJ.Genie.Studio-1.0.48-catalina-x64.dmg --clobber
+          else
+            gh release create v1.0.48 /tmp/djgenie-1.0.48/DJ.Genie.Studio-1.0.48-universal.dmg /tmp/djgenie-1.0.48/DJ.Genie.Studio-1.0.48-catalina-x64.dmg --title "DJ Genie Studio 1.0.48" --notes "Corrects admin access: the desktop honors active admin status verified by the DJ Genie website. Restores read-only browsing of DJ Genie and Serato crates for accounts with no subscription, and hides library editing and preview controls until Studio Pro is active. Track Rescue, Duplicate Cleaner, and other paid functions remain secured behind the paywall. The administrator must sign into the desktop with the website admin account and Refresh access. macOS 11+ universal; macOS Catalina 10.15 Intel supported with restore disabled. Unsigned and not notarized."
+          fi
+          gh release view v1.0.48 --json assets
