@@ -1,0 +1,26 @@
+name: Verify 1.0.47 website deployment command
+on:
+  push:
+    paths:
+      - 'scripts/deploy-djgenie-website-1.0.47.command'
+      - '.github/workflows/check-1.0.47-deploy-script.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Bash and embedded Python syntax
+        run: |
+          bash -n scripts/deploy-djgenie-website-1.0.47.command
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('scripts/deploy-djgenie-website-1.0.47.command').read_text()
+          start = "python3 - <<'PY'\n"
+          assert start in text, 'Missing Python script'
+          python = text.split(start, 1)[1].split('\nPY\n', 1)[0]
+          compile(python, 'website-deploy-python', 'exec')
+          print('Website deployment script syntax verified.')
+          PY
