@@ -36,6 +36,8 @@ for name, (filename, architecture) in versions.items():
     pattern = r'(export const ' + name + r': DesktopRelease = \{)(.*?)(\n\};)'
     match = re.search(pattern, source, re.S)
     if not match:
+        if name == "INTEL_DESKTOP_RELEASE":
+            continue
         raise SystemExit("STOP: Missing release definition " + name)
     block = match.group(2)
     link = 'downloadUrl: ' + tick + dollar + '{GITHUB_RELEASES_BASE}/v1.0.47/' + dollar + '{encodeURIComponent("' + filename + '")}' + tick + ','
