@@ -1,0 +1,40 @@
+name: Publish verified DJ Genie Studio v1.0.47 installers
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-1.0.47.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download verified macOS installer artifacts
+        env:
+          UNIVERSAL_ZIP_URL: 'https://sdmntprwestus3.oaiusercontent.com/files/00000000-99b8-81fd-90f1-35b337adff4f/raw?se=2026-11-27T00%3A15%3A51Z&sp=r&sv=2026-06-06&sr=b&scid=1f8fafa4-42cb-5d9f-a70d-24d354ec9bc1&skoid=c69179d1-5b5d-430f-afa3-b9bdcf9d6497&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-26T23%3A54%3A19Z&ske=2026-11-27T23%3A54%3A19Z&sks=b&skv=2026-06-06&sig=fbISbda05rs27zbS%2BG1MMcCNLGgiQmt72UPpRGHMgL0%3D'
+          CATALINA_ZIP_URL: 'https://sdmntprwestus3.oaiusercontent.com/files/00000000-d924-81fd-9026-be19566fe60d/raw?se=2026-11-27T00%3A16%3A56Z&sp=r&sv=2026-06-06&sr=b&scid=4a3eba7f-8e40-52d3-b63a-4b7226413423&skoid=c69179d1-5b5d-430f-afa3-b9bdcf9d6497&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-26T23%3A07%3A28Z&ske=2026-11-27T23%3A07%3A28Z&sks=b&skv=2026-06-06&sig=VF6fc8JFn72bGyn8VVdFnwMgxj6f3PRK1liBnaAEwzE%3D'
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/djgenie-1.0.47
+          curl -fLsS --retry 3 --max-time 260 "$UNIVERSAL_ZIP_URL" -o /tmp/djgenie-1.0.47/universal.zip
+          echo "ca1c3edc4c91557e4b4380d84df6ba8178f13fb6cfe8b5680f8c1df9ac1a98ee  /tmp/djgenie-1.0.47/universal.zip" | sha256sum -c -
+          curl -fLsS --retry 3 --max-time 260 "$CATALINA_ZIP_URL" -o /tmp/djgenie-1.0.47/catalina.zip
+          echo "420f13e1cf53a55ca159bfe0f4deda9f1db0da5e86d1be6f98c818a1e8a0aeb1  /tmp/djgenie-1.0.47/catalina.zip" | sha256sum -c -
+          unzip -q /tmp/djgenie-1.0.47/universal.zip -d /tmp/djgenie-1.0.47
+          unzip -q /tmp/djgenie-1.0.47/catalina.zip -d /tmp/djgenie-1.0.47
+          test -s /tmp/djgenie-1.0.47/DJ.Genie.Studio-1.0.47-universal.dmg
+          test -s /tmp/djgenie-1.0.47/DJ.Genie.Studio-1.0.47-catalina-x64.dmg
+      - name: Publish public v1.0.47 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: AnwaarHimself/dj-genie-studio-releases
+        run: |
+          set -euo pipefail
+          if gh release view v1.0.47 >/dev/null 2>&1; then
+            gh release upload v1.0.47 /tmp/djgenie-1.0.47/DJ.Genie.Studio-1.0.47-universal.dmg /tmp/djgenie-1.0.47/DJ.Genie.Studio-1.0.47-catalina-x64.dmg --clobber
+          else
+            gh release create v1.0.47 /tmp/djgenie-1.0.47/DJ.Genie.Studio-1.0.47-universal.dmg /tmp/djgenie-1.0.47/DJ.Genie.Studio-1.0.47-catalina-x64.dmg --title "DJ Genie Studio 1.0.47" --notes "Paid-feature access fixes and Track Rescue layout improvements. Duplicate Cleaner, Track Rescue, DJ Genie Crates and Music Prep editing require Studio Pro. Gear Shift requires a paid membership. Library viewing and DJ profile information remain available without a plan. Full song names now use the Track Rescue list width and selected details open on demand. Universal DMG supports macOS 11 or later; Catalina Intel DMG supports macOS 10.15. Installers are unsigned and may require Open Anyway in macOS Privacy & Security."
+          fi
+          gh release view v1.0.47 --json assets
